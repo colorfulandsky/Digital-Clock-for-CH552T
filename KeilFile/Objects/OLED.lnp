@@ -1,0 +1,8 @@
+".\Objects\I2C.obj",
+".\Objects\main.obj",
+".\Objects\OLED.obj",
+".\Objects\ds1302.obj",
+".\Objects\page.obj",
+".\Objects\key.obj" 
+TO ".\Objects\OLED" 
+PRINT(".\Listings\OLED.m51")

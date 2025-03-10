@@ -1,0 +1,103 @@
+C51 COMPILER V9.00   KEY                                                                   01/08/2025 16:52:07 PAGE 1   
+
+
+C51 COMPILER V9.00, COMPILATION OF MODULE KEY
+OBJECT MODULE PLACED IN .\Objects\key.obj
+COMPILER INVOKED BY: D:\Keil_v5\C51\BIN\C51.EXE ..\Code\key.c LARGE OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\
+                    -Listings\key.lst) TABS(2) OBJECT(.\Objects\key.obj)
+
+line level    source
+
+   1          #include "key.h"
+   2          
+   3          
+   4          sbit OK_Key = P3 ^ 3;
+   5          sbit TOGGLE_Key = P3 ^ 4;
+   6          sbit CANCEL_Key = P3 ^ 5;
+   7          
+   8          
+   9          /// @brief 单次扫描按键（只扫描一次后正常返回）
+  10          unsigned char Key_Scan()
+  11          {
+  12   1          unsigned char keycode = 0;
+  13   1          if(OK_Key==0)   //读P1.0引脚，如果引脚为低电平，则进入if
+  14   1        {
+  15   2          Delay_ms(10); //延时10ms消抖
+  16   2          if(OK_Key==0)  //再次判断按键是否按下，防止干扰，增强稳定
+  17   2          {     
+  18   3            while(OK_Key==0);//等待按键松开
+  19   3                  keycode=1;
+  20   3          }
+  21   2        }
+  22   1          if(TOGGLE_Key==0)   //读P1.0引脚，如果引脚为低电平，则进入if
+  23   1        {
+  24   2          Delay_ms(10); //延时10ms消抖
+  25   2          if(TOGGLE_Key==0)  //再次判断按键是否按下，防止干扰，增强稳定
+  26   2          {     
+  27   3            while(TOGGLE_Key==0);//等待按键松开
+  28   3                  keycode=2;
+  29   3          }
+  30   2        }
+  31   1          if(CANCEL_Key==0)   //读P1.0引脚，如果引脚为低电平，则进入if
+  32   1        {
+  33   2          Delay_ms(10); //延时10ms消抖
+  34   2          if(CANCEL_Key==0)  //再次判断按键是否按下，防止干扰，增强稳定
+  35   2          {     
+  36   3            while(CANCEL_Key==0);//等待按键松开
+  37   3                  keycode=1;
+  38   3          }
+  39   2        }
+  40   1          return keycode;
+  41   1      }
+  42          
+  43          /// @brief 持续扫描按键，（阻塞语句）如果不按下按键则始终扫描
+  44          unsigned char Key_Scan_Blocked()
+  45          {
+  46   1          while(1)
+  47   1          {
+  48   2              if(OK_Key==0)   //读P1.0引脚，如果引脚为低电平，则进入if
+  49   2            {
+  50   3                  Delay_ms(10); //延时10ms消抖
+  51   3                  if(OK_Key==0)  //再次判断按键是否按下，防止干扰，增强稳定
+  52   3                  {     
+  53   4                      while(OK_Key==0);//等待按键松开
+  54   4                      return 1;
+C51 COMPILER V9.00   KEY                                                                   01/08/2025 16:52:07 PAGE 2   
+
+  55   4                  }
+  56   3            }
+  57   2              if(TOGGLE_Key==0)   //读P1.0引脚，如果引脚为低电平，则进入if
+  58   2            {
+  59   3                  Delay_ms(10); //延时10ms消抖
+  60   3                  if(TOGGLE_Key==0)  //再次判断按键是否按下，防止干扰，增强稳定
+  61   3                  {     
+  62   4                      while(TOGGLE_Key==0);//等待按键松开
+  63   4                      return 2;
+  64   4                  }
+  65   3            }
+  66   2              if(CANCEL_Key==0)   //读P1.0引脚，如果引脚为低电平，则进入if
+  67   2            {
+  68   3                  Delay_ms(10); //延时10ms消抖
+  69   3                  if(CANCEL_Key==0)  //再次判断按键是否按下，防止干扰，增强稳定
+  70   3                  {     
+  71   4                      while(CANCEL_Key==0);//等待按键松开
+  72   4                      return 3;
+  73   4                  }
+  74   3            }
+  75   2          }
+  76   1          return 0;
+  77   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    133    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----       1
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

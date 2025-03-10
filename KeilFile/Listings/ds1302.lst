@@ -1,0 +1,211 @@
+C51 COMPILER V9.00   DS1302                                                                01/08/2025 16:52:06 PAGE 1   
+
+
+C51 COMPILER V9.00, COMPILATION OF MODULE DS1302
+OBJECT MODULE PLACED IN .\Objects\ds1302.obj
+COMPILER INVOKED BY: D:\Keil_v5\C51\BIN\C51.EXE ..\Code\ds1302.c LARGE OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT
+                    -(.\Listings\ds1302.lst) TABS(2) OBJECT(.\Objects\ds1302.obj)
+
+line level    source
+
+   1          #include "ds1302.h"
+   2          
+   3          // 引脚定义；
+   4          sbit DS1302_SCLK = P1 ^ 4;
+   5          sbit DS1302_IO = P1 ^ 5;
+   6          sbit DS1302_RST = P1 ^ 6;
+   7          
+   8          // 对应寄存器位置定义
+   9          #define DS1302_SECOND 0X80
+  10          #define DS1302_MINUTE 0X82
+  11          #define DS1302_HOUR 0X84
+  12          #define DS1302_DATE 0X86
+  13          #define DS1302_MONTH 0X88
+  14          #define DS1302_DAY 0X8A
+  15          #define DS1302_YEAR 0X8C
+  16          #define DS1302_WP 0X8E
+  17          
+  18          
+  19          /*数据（全局变量 数组）存放的方式：
+  20          例如：日期表示2024年12月30日
+  21          位数： 0 1 2 3 4 5 6 7
+  22          数据： 2 0 2 4 1 2 3 0 
+  23          
+  24          时间表示：12时30分15秒
+  25          位数： 0 1 2 3 4 5
+  26          数据： 1 2 3 0 1 5
+  27          
+  28          */
+  29          
+  30          unsigned char DS1302_Time[] = {1,2,3,0,0,0};  //默认时间
+  31          unsigned char DS1302_Date[] = {2,0,2,4,0,1,0,1};  //默认日期
+  32          unsigned char DS1302_Week = 1;  //默认星期一
+  33          
+  34          /**
+  35           *@brief DS1302初始化,同时设置为默认的时间/日期/星期
+  36           *@param 无
+  37           *@retval 无
+  38           */
+  39          void DS1302_Init()
+  40          {
+  41   1        DS1302_RST = 0;  // 将使能位置0，低电平；
+  42   1        DS1302_SCLK = 0; // 将时钟位置0，低电平；
+  43   1      }
+  44          
+  45          /**
+  46           *@breaf DS1302单字节写入函数
+  47           *@param command：写入控制指令的指令，包含要写入寄存器的地址,8bits；
+  48           *@param Data：将要写入的数据内容 8bits；
+  49           *@retval 无
+  50           */
+  51          void DS1302_WriteByte(unsigned char command, Data)
+  52          {
+  53   1        unsigned char i;
+  54   1        DS1302_RST = 1;     // 使能位置高电平；
+C51 COMPILER V9.00   DS1302                                                                01/08/2025 16:52:06 PAGE 2   
+
+  55   1        for (i = 0; i < 8; i++) // 控制寄存器数据需要通过IO线一个一个写入控制寄存器;低位
+             -先写入
+  56   1        {
+  57   2          DS1302_IO = command & (0x01 << i); // 相当于把第1--7位置0，只留第0位，如果第0位是0，�
+             -��为0；反之则为1；
+  58   2          DS1302_SCLK = 1;
+  59   2          DS1302_SCLK = 0;
+  60   2        }
+  61   1      
+  62   1        for (i = 0; i < 8; i++) // 数据写入
+  63   1        {
+  64   2          DS1302_IO = Data & (0x01 << i); // 相当于把第1--7位置0，只留第0位，如果第0位是0，则�
+             -��0；反之则为1；
+  65   2          DS1302_SCLK = 1;
+  66   2          DS1302_SCLK = 0;
+  67   2        }
+  68   1        DS1302_RST = 0;
+  69   1      }
+  70          
+  71          /**
+  72           *@breaf  DS1302单字节读出函数
+  73           *@param command：写入控制指令的指令，包含要读出寄存器的地址；
+  74           *@retval Data：读出的数据；
+  75           */
+  76          unsigned char DS1302_ReadByte(unsigned char command)
+  77          {
+  78   1        unsigned i, Data = 0X00;
+  79   1        command |= 0X01;    // 写入指令与读出指令只在最后一位相差1，故在此利用或运算消�
+             -�；
+  80   1        DS1302_RST = 1;     // 使能位置高电平；
+  81   1        for (i = 0; i < 8; i++) // 控制寄存器数据需要通过IO线一个一个写入控制寄存器;低位
+             -先写入
+  82   1        {
+  83   2          DS1302_IO = command & (0x01 << i); // 相当于把第1--7位置0，只留第0位，如果第0位是0，�
+             -��为0；反之则为1；
+  84   2          DS1302_SCLK = 0;
+  85   2          DS1302_SCLK = 1;
+  86   2        }
+  87   1        
+  88   1        for (i = 0; i < 8; i++) // 数据读出
+  89   1        {
+  90   2          DS1302_SCLK = 1;
+  91   2          DS1302_SCLK = 0;
+  92   2          if (DS1302_IO)
+  93   2          {
+  94   3            Data |= (0X01 << i);
+  95   3          }
+  96   2        }
+  97   1        DS1302_IO = 0;
+  98   1        DS1302_RST = 0;
+  99   1        return Data;
+ 100   1      }
+ 101          
+ 102          
+ 103          /**
+ 104           *@breaf ds1302设置时间
+ 105           *@param 无
+ 106           *@retval 无
+ 107           */
+ 108          void DS1302_SetTime()
+ 109          {
+ 110   1        DS1302_WriteByte(DS1302_WP, 0x00);                    // 操作 DS1302 之前，关闭写保护，不然指令无�
+C51 COMPILER V9.00   DS1302                                                                01/08/2025 16:52:06 PAGE 3   
+
+             -�进入控制寄存器；
+ 111   1        DS1302_WriteByte(DS1302_HOUR, (DS1302_Time[0]<<4) | DS1302_Time[1]);   // 写入时，
+ 112   1        DS1302_WriteByte(DS1302_MINUTE, (DS1302_Time[2]<<4) | DS1302_Time[3]);  // 写入分，
+ 113   1        DS1302_WriteByte(DS1302_SECOND, (DS1302_Time[4]<<4) | DS1302_Time[5]);  // 写入秒，
+ 114   1        DS1302_WriteByte(DS1302_WP, 0x80);                         // 写入结束，开启写保护；
+ 115   1      }
+ 116          
+ 117          //ds1302设置日期程序
+ 118          void DS1302_SetDate()
+ 119          {
+ 120   1        DS1302_WriteByte(DS1302_WP, 0x00);                    // 操作 DS1302 之前，关闭写保护，不然指令无�
+             -�进入控制寄存器；
+ 121   1        DS1302_WriteByte(DS1302_YEAR, (DS1302_Date[2]<<4) | DS1302_Date[3]);   // 写入年，直接将年份十�
+             -�左移4位，再和个位并起来；下同
+ 122   1        DS1302_WriteByte(DS1302_MONTH, (DS1302_Date[4]<<4) | DS1302_Date[5]);  // 写入月，
+ 123   1        DS1302_WriteByte(DS1302_DATE, (DS1302_Date[6]<<4) | DS1302_Date[7]);   // 写入日，
+ 124   1        DS1302_WriteByte(DS1302_WP, 0x80);                         // 写入结束，开启写保护；
+ 125   1      }
+ 126          
+ 127          //ds1302设置星期
+ 128          void DS1302_SetWeek()
+ 129          {
+ 130   1        DS1302_WriteByte(DS1302_WP, 0x00);                    // 操作 DS1302 之前，关闭写保护，不然指令无�
+             -�进入控制寄存器
+ 131   1        DS1302_WriteByte(DS1302_DAY, DS1302_Week);                // 写入星期，
+ 132   1        DS1302_WriteByte(DS1302_WP, 0x80);                         // 写入结束，开启写保护；
+ 133   1      }
+ 134          
+ 135          /**
+ 136           *@brief 读取DS1302内时间，读取到的时间存入全局变量DS1302_Time[0]中
+ 137           *@param None
+ 138           *@retval None
+ 139           */
+ 140          void DS1302_ReadTime()
+ 141          {
+ 142   1        unsigned char Temp;              // 定义变量，用于暂时存储BCD码
+ 143   1      
+ 144   1        Temp = DS1302_ReadByte(DS1302_YEAR);     // 读取年BCD码；
+ 145   1        DS1302_Date[2] = (Temp >> 4) & 0x0f;    //年份十位，取后四位（先右移4位，高位变低位；�
+             -��和00001111与一下）
+ 146   1        DS1302_Date[3] = Temp & 0x0f;       // 年份个位，取前四位bcd（直接与00001111与）下同
+ 147   1        
+ 148   1        Temp = DS1302_ReadByte(DS1302_MONTH);    // 读取月BCD码；
+ 149   1        DS1302_Date[4] = (Temp >> 4) & 0x0f;
+ 150   1        DS1302_Date[5] = Temp & 0x0f;
+ 151   1      
+ 152   1        Temp = DS1302_ReadByte(DS1302_DATE);     // 读取日BCD码；
+ 153   1        DS1302_Date[6] = (Temp >> 4) & 0x0f;
+ 154   1        DS1302_Date[7] = Temp & 0x0f;
+ 155   1      
+ 156   1        Temp = DS1302_ReadByte(DS1302_HOUR);     // 读取小时BCD码；
+ 157   1        DS1302_Time[0] = (Temp >> 4) & 0x0f;
+ 158   1        DS1302_Time[1] = Temp & 0x0f;
+ 159   1      
+ 160   1        Temp = DS1302_ReadByte(DS1302_MINUTE);     // 读取分钟BCD码；
+ 161   1        DS1302_Time[2] = (Temp >> 4) & 0x0f;
+ 162   1        DS1302_Time[3] = Temp & 0x0f;
+ 163   1      
+ 164   1        Temp = DS1302_ReadByte(DS1302_SECOND);     // 读取秒BCD码；
+ 165   1        DS1302_Time[4] = (Temp >> 4) & 0x0f;
+ 166   1        DS1302_Time[5] = Temp & 0x0f;
+ 167   1      
+C51 COMPILER V9.00   DS1302                                                                01/08/2025 16:52:06 PAGE 4   
+
+ 168   1        Temp = DS1302_ReadByte(DS1302_DAY);      // 读取星期BCD码；
+ 169   1        DS1302_Week=Temp;
+ 170   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    539    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =     15       4
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

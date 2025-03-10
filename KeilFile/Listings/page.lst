@@ -1,0 +1,741 @@
+C51 COMPILER V9.00   PAGE                                                                  01/08/2025 16:52:06 PAGE 1   
+
+
+C51 COMPILER V9.00, COMPILATION OF MODULE PAGE
+OBJECT MODULE PLACED IN .\Objects\page.obj
+COMPILER INVOKED BY: D:\Keil_v5\C51\BIN\C51.EXE ..\Code\page.c LARGE OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.
+                    -\Listings\page.lst) TABS(2) OBJECT(.\Objects\page.obj)
+
+line level    source
+
+   1          #include "page.h"
+   2          
+   3          unsigned char blink_flag = 0; // 闪烁标识，用于主页的时间字符串的闪烁。
+   4          
+   5          unsigned char isAlarmOn = 1; // 标识当前闹钟是否打开，打开为1，关闭为2
+   6          
+   7          unsigned char Alarm_Time[] = {0, 6, 3, 0}; // 设置的闹钟响铃时间，6点30为上电默认时间
+   8          
+   9          unsigned char isShowSecond = 0; // 是否显示秒数
+  10          
+  11          unsigned char isShowYear = 0; // 是否显示年份
+  12          
+  13          unsigned char Time_Fontstyle = 1; // 时间的字体风格
+  14          
+  15          /// @brief 显示主页
+  16          void ShowPage_Home()
+  17          {
+  18   1          DS1302_ReadTime(); // 读取时间
+  19   1      
+  20   1          if (isAlarmOn == 1)
+  21   1          {
+  22   2              OLED_DisplayCN(0, 0, 23); // 根据当前闹钟开关状态，判断是否需要显示闹钟标志
+             -符号
+  23   2              Show_TimeString(16, 0, Alarm_Time, 4);
+  24   2          }
+  25   1          // else OLED_DisplayCN(0,0,19);
+  26   1      
+  27   1          Show_LargeTimeString(isShowSecond, Time_Fontstyle); // 显示主页的大号时间（参数有是否�
+             -�示秒，字体风格）
+  28   1          Show_DataString(isShowYear, 0, 6);                  // 显示主页的日期（参数有是否显示�
+             -�份）
+  29   1          Show_WeekString(0, 80, 6);                          // 显示星期几
+  30   1      }
+  31          
+  32          /// @brief 显示菜单页面
+  33          void ShowPage_Menu()
+  34          {
+  35   1          unsigned char option;
+  36   1      
+  37   1          OLED_Fill(0);
+  38   1      
+  39   1          OLED_DisplayCN(16, 0, 10); // 设置时间
+  40   1          OLED_DisplayCN(32, 0, 11);
+  41   1          OLED_DisplayCN(48, 0, 12);
+  42   1          OLED_DisplayCN(64, 0, 13);
+  43   1      
+  44   1          OLED_DisplayCN(16, 2, 10); // 设置日期星期
+  45   1          OLED_DisplayCN(32, 2, 11);
+  46   1          OLED_DisplayCN(48, 2, 14);
+  47   1          OLED_DisplayCN(64, 2, 15);
+  48   1          OLED_DisplayCN(80, 2, 0);
+  49   1          OLED_DisplayCN(96, 2, 1);
+  50   1      
+  51   1          OLED_DisplayCN(16, 4, 10); // 设置闹钟
+C51 COMPILER V9.00   PAGE                                                                  01/08/2025 16:52:06 PAGE 2   
+
+  52   1          OLED_DisplayCN(32, 4, 11);
+  53   1          OLED_DisplayCN(48, 4, 16);
+  54   1          OLED_DisplayCN(64, 4, 17);
+  55   1      
+  56   1          OLED_DisplayCN(16, 6, 24); // 样式设置
+  57   1          OLED_DisplayCN(32, 6, 25);
+  58   1          OLED_DisplayCN(48, 6, 10);
+  59   1          OLED_DisplayCN(64, 6, 11);
+  60   1      
+  61   1          option = Show_SelectBar(4); // 此处阻塞
+  62   1      
+  63   1          switch (option)
+  64   1          {
+  65   2          case 1:
+  66   2              ShowPage_TimeSet();
+  67   2              break;
+  68   2          case 2:
+  69   2              ShowPage_DateSet();
+  70   2              break;
+  71   2          case 3:
+  72   2              ShowPage_AlarmSet();
+  73   2              break;
+  74   2          case 4:
+  75   2              Show_PatternSet();
+  76   2              break;
+  77   2          default:
+  78   2              break;
+  79   2          }
+  80   1          OLED_Fill(0);
+  81   1      }
+  82          
+  83          /// @brief 显示调整时间的界面
+  84          void ShowPage_TimeSet()
+  85          {
+  86   1          unsigned char i = 0; // 用于标识当前正调整的位
+  87   1      
+  88   1          OLED_Fill(0);
+  89   1          OLED_DisplayCN(32, 0, 10); // 设置时间
+  90   1          OLED_DisplayCN(48, 0, 11);
+  91   1          OLED_DisplayCN(64, 0, 12);
+  92   1          OLED_DisplayCN(80, 0, 13);
+  93   1          while (i <= 3)
+  94   1          {
+  95   2              Show_TimeString(44, 2, DS1302_Time, 4);
+  96   2              OLED_DisplayStr(44, 4, "        ");
+  97   2              if (i > 1)
+  98   2                  OLED_DisplayChar(44 + i * 8 + 8, 4, 127); // 显示小箭头指示调整的位,此处if作用�
+             -��，如果调整分钟数【i》1】情况，需要跳过一个冒号。
+  99   2              else
+ 100   2                  OLED_DisplayChar(44 + i * 8, 4, 127);
+ 101   2      
+ 102   2              switch (Key_Scan_Blocked())
+ 103   2              {
+ 104   3              case 1: // ok键，当前位+1
+ 105   3                  DS1302_Time[i]++;
+ 106   3                  if (DS1302_Time[i] > 9)
+ 107   3                      DS1302_Time[i] = 0; // 任意一位都不允许大于9
+ 108   3                  break;
+ 109   3              case 2: // 切位键，调整下一位
+ 110   3                  i++;
+ 111   3                  break;
+ 112   3              case 3: // 取消键，退出调整程序（不保存）
+C51 COMPILER V9.00   PAGE                                                                  01/08/2025 16:52:06 PAGE 3   
+
+ 113   3                  return;
+ 114   3              }
+ 115   2      
+ 116   2              if (DS1302_Time[0] * 10 + DS1302_Time[1] > 23 | DS1302_Time[0] * 10 + DS1302_Time[1] < 0) // 判�
+             -�当前时间的合法性
+ 117   2              {
+ 118   3                  DS1302_Time[0] = 0;
+ 119   3                  DS1302_Time[1] = 0;
+ 120   3              }
+ 121   2              if (DS1302_Time[2] * 10 + DS1302_Time[3] > 59 | DS1302_Time[2] * 10 + DS1302_Time[3] < 0)
+ 122   2              {
+ 123   3                  DS1302_Time[2] = 0;
+ 124   3                  DS1302_Time[3] = 0;
+ 125   3              }
+ 126   2          }
+ 127   1          DS1302_SetTime();
+ 128   1      }
+ 129          
+ 130          /// @brief 显示调整日期的界面
+ 131          void ShowPage_DateSet()
+ 132          {
+ 133   1          unsigned char i = 2; // 用于标识当前正调整的位,由于开头的20xx是固定的，所以直�
+             -��从第二位开始调整
+ 134   1      
+ 135   1          OLED_Fill(0);
+ 136   1          OLED_DisplayCN(16, 0, 10); // 设置日期星期
+ 137   1          OLED_DisplayCN(32, 0, 11);
+ 138   1          OLED_DisplayCN(48, 0, 14);
+ 139   1          OLED_DisplayCN(64, 0, 15);
+ 140   1          OLED_DisplayCN(80, 0, 0);
+ 141   1          OLED_DisplayCN(96, 0, 1);
+ 142   1      
+ 143   1          while (i <= 8)
+ 144   1          {
+ 145   2              Show_DataString(1, 1, 2);  // 屏幕先列出当前的日期
+ 146   2              Show_WeekString(1, 96, 2); // 再列出当前星期
+ 147   2              OLED_DisplayStr(0, 4, "                ");
+ 148   2      
+ 149   2              // 判断指示调整位的小箭头应该显示在哪里
+ 150   2              if (i == 4 | i == 5)
+ 151   2                  OLED_DisplayChar(0 + i * 8 + 8, 4, 127); // 显示小箭头指示调整的位,此处if作用�
+             -�，如果调整月份【i》3】情况，需要跳过一个冒号。
+ 152   2              else if (i == 6 | i == 7)
+ 153   2                  OLED_DisplayChar(0 + i * 8 + 16, 4, 127); // 显示小箭头指示调整的位,此处if作用�
+             -��，如果调整日期【i》5】情况，需要跳过2个冒号。
+ 154   2              else if (i == 8)
+ 155   2                  OLED_DisplayChar(119, 4, 127); // i=8时，调整的是星期，箭头显示到星期处
+ 156   2              else
+ 157   2                  OLED_DisplayChar(0 + i * 8, 4, 127);
+ 158   2      
+ 159   2              switch (Key_Scan_Blocked()) // 扫描按键，调整日期中
+ 160   2              {
+ 161   3              case 1:        // ok键，当前位+1
+ 162   3                  if (i < 8) // 处于调整日期的状态下
+ 163   3                  {
+ 164   4                      DS1302_Date[i]++;
+ 165   4                      if (DS1302_Date[i] > 9)
+ 166   4                          DS1302_Date[i] = 0; // 任意一位都不允许大于9
+ 167   4                  }
+ 168   3                  else // 调整的是星期
+ 169   3                  {
+ 170   4                      DS1302_Week++;
+C51 COMPILER V9.00   PAGE                                                                  01/08/2025 16:52:06 PAGE 4   
+
+ 171   4                      if (DS1302_Week == 8)
+ 172   4                          DS1302_Week = 1;
+ 173   4                  }
+ 174   3                  break;
+ 175   3              case 2: // 切位键，调整下一位
+ 176   3                  i++;
+ 177   3                  break;
+ 178   3              case 3: // 取消键，退出调整程序（不保存）
+ 179   3                  return;
+ 180   3              }
+ 181   2      
+ 182   2              if (DS1302_Date[2] * 10 + DS1302_Date[3] > 99) // 判断当前日期的合法性
+ 183   2              {
+ 184   3                  DS1302_Date[2] = 0;
+ 185   3                  DS1302_Date[3] = 0;
+ 186   3              }
+ 187   2              if (DS1302_Date[4] * 10 + DS1302_Date[5] > 12 | DS1302_Date[4] * 10 + DS1302_Date[5] < 1)
+ 188   2              {
+ 189   3                  DS1302_Date[4] = 0;
+ 190   3                  DS1302_Date[5] = 1;
+ 191   3              }
+ 192   2              if (DS1302_Date[6] * 10 + DS1302_Date[7] > 31 | DS1302_Date[6] * 10 + DS1302_Date[7] < 1)
+ 193   2              {
+ 194   3                  DS1302_Date[6] = 0;
+ 195   3                  DS1302_Date[7] = 1;
+ 196   3              }
+ 197   2          }
+ 198   1          DS1302_SetDate();
+ 199   1          DS1302_SetWeek();
+ 200   1      }
+ 201          
+ 202          /// @brief 显示闹钟设置
+ 203          void ShowPage_AlarmSet()
+ 204          {
+ 205   1          unsigned char option;
+ 206   1      
+ 207   1          OLED_Fill(0);
+ 208   1      
+ 209   1          OLED_DisplayCN(16, 0, 16); // 闹钟时间
+ 210   1          OLED_DisplayCN(32, 0, 17);
+ 211   1          OLED_DisplayCN(48, 0, 12);
+ 212   1          OLED_DisplayCN(64, 0, 13);
+ 213   1          Show_TimeString(80, 0, Alarm_Time, 4);
+ 214   1      
+ 215   1          OLED_DisplayCN(16, 2, 16); // 闹钟开（或闹钟关，根据isalarmon的值来确定显示什么）
+ 216   1          OLED_DisplayCN(32, 2, 17);
+ 217   1          if (isAlarmOn == 0)
+ 218   1              OLED_DisplayCN(48, 2, 20);
+ 219   1          else
+ 220   1              OLED_DisplayCN(48, 2, 21);
+ 221   1      
+ 222   1          option = Show_SelectBar(2);
+ 223   1          switch (option)
+ 224   1          {
+ 225   2          case 1:
+ 226   2              Show_AlarmTimeSet();
+ 227   2              break;
+ 228   2          case 2:
+ 229   2              if (isAlarmOn == 0)
+ 230   2                  isAlarmOn = 1;
+ 231   2              else
+ 232   2                  isAlarmOn = 0;
+C51 COMPILER V9.00   PAGE                                                                  01/08/2025 16:52:06 PAGE 5   
+
+ 233   2              break;
+ 234   2          default:
+ 235   2              break;
+ 236   2          }
+ 237   1      }
+ 238          
+ 239          /// @brief 显示调整闹钟时间的子页面
+ 240          void Show_AlarmTimeSet()
+ 241          {
+ 242   1          unsigned char i = 0; // 用于标识当前正调整的位
+ 243   1      
+ 244   1          OLED_Fill(0);
+ 245   1          OLED_DisplayCN(32, 0, 16); // 闹钟时间
+ 246   1          OLED_DisplayCN(48, 0, 17);
+ 247   1          OLED_DisplayCN(64, 0, 12);
+ 248   1          OLED_DisplayCN(80, 0, 13);
+ 249   1          while (i <= 3)
+ 250   1          {
+ 251   2              Show_TimeString(44, 2, Alarm_Time, 4);
+ 252   2              OLED_DisplayStr(44, 4, "        ");
+ 253   2              if (i > 1)
+ 254   2                  OLED_DisplayChar(44 + i * 8 + 8, 4, 127); // 显示小箭头指示调整的位,此处if作用�
+             -��，如果调整分钟数【i》1】情况，需要跳过一个冒号。
+ 255   2              else
+ 256   2                  OLED_DisplayChar(44 + i * 8, 4, 127);
+ 257   2      
+ 258   2              switch (Key_Scan_Blocked())
+ 259   2              {
+ 260   3              case 1: // ok键，当前位+1
+ 261   3                  Alarm_Time[i]++;
+ 262   3                  if (Alarm_Time[i] > 9)
+ 263   3                      Alarm_Time[i] = 0; // 任意一位都不允许大于9
+ 264   3                  break;
+ 265   3              case 2: // 切位键，调整下一位
+ 266   3                  i++;
+ 267   3                  break;
+ 268   3              case 3: // 取消键，退出调整程序（不保存）
+ 269   3                  return;
+ 270   3              }
+ 271   2      
+ 272   2              if (Alarm_Time[0] * 10 + Alarm_Time[1] > 23) // 判断当前时间的合法性
+ 273   2              {
+ 274   3                  Alarm_Time[0] = 0;
+ 275   3                  Alarm_Time[1] = 0;
+ 276   3              }
+ 277   2              if (Alarm_Time[2] * 10 + Alarm_Time[3] > 59)
+ 278   2              {
+ 279   3                  Alarm_Time[2] = 0;
+ 280   3                  Alarm_Time[3] = 0;
+ 281   3              }
+ 282   2          }
+ 283   1      }
+ 284          
+ 285          /// @brief 显示样式切换的页面
+ 286          void Show_PatternSet()
+ 287          {
+ 288   1          unsigned char option;
+ 289   1      
+ 290   1          OLED_Fill(0);
+ 291   1      
+ 292   1          OLED_DisplayCN(16, 0, 12); // 时间样式设置
+ 293   1          OLED_DisplayCN(32, 0, 13);
+C51 COMPILER V9.00   PAGE                                                                  01/08/2025 16:52:06 PAGE 6   
+
+ 294   1          OLED_DisplayCN(48, 0, 24);
+ 295   1          OLED_DisplayCN(64, 0, 25);
+ 296   1          OLED_DisplayCN(80, 0, 10);
+ 297   1          OLED_DisplayCN(96, 0, 11);
+ 298   1      
+ 299   1          OLED_DisplayCN(16, 2, 14); // 日期样式设置
+ 300   1          OLED_DisplayCN(32, 2, 15);
+ 301   1          OLED_DisplayCN(48, 2, 24);
+ 302   1          OLED_DisplayCN(64, 2, 25);
+ 303   1          OLED_DisplayCN(80, 2, 10);
+ 304   1          OLED_DisplayCN(96, 2, 11);
+ 305   1      
+ 306   1          OLED_DisplayCN(16, 4, 12); // 时钟风格
+ 307   1          OLED_DisplayCN(32, 4, 17);
+ 308   1          OLED_DisplayCN(48, 4, 26);
+ 309   1          OLED_DisplayCN(64, 4, 27);
+ 310   1      
+ 311   1          // OLED_DisplayCN(16, 6, 29); //显示亮度调整
+ 312   1          // OLED_DisplayCN(32, 6, 30);
+ 313   1          // OLED_DisplayCN(48, 6, 43);
+ 314   1          // OLED_DisplayCN(64, 6, 44);
+ 315   1          // OLED_DisplayCN(80, 6, 45);
+ 316   1          // OLED_DisplayCN(96, 6, 46);
+ 317   1          OLED_DisplayStr(16, 6, "About");
+ 318   1      
+ 319   1          option = Show_SelectBar(4); // 此处阻塞
+ 320   1      
+ 321   1          switch (option)
+ 322   1          {
+ 323   2          case 1:
+ 324   2              OLED_Fill(0);
+ 325   2              OLED_DisplayCN(16, 0, 29); // 显示秒数
+ 326   2              OLED_DisplayCN(32, 0, 30);
+ 327   2              OLED_DisplayCN(48, 0, 31);
+ 328   2              OLED_DisplayCN(64, 0, 32);
+ 329   2      
+ 330   2              OLED_DisplayCN(16, 2, 28);
+ 331   2              OLED_DisplayCN(32, 2, 29); // 不显示秒数
+ 332   2              OLED_DisplayCN(48, 2, 30);
+ 333   2              OLED_DisplayCN(64, 2, 31);
+ 334   2              OLED_DisplayCN(80, 2, 32);
+ 335   2      
+ 336   2              option = Show_SelectBar(2); // 此处阻塞
+ 337   2              if (option == 1)
+ 338   2                  isShowSecond = 1;
+ 339   2              else if (option == 2)
+ 340   2                  isShowSecond = 0;
+ 341   2      
+ 342   2              break;
+ 343   2          case 2:
+ 344   2              OLED_Fill(0);
+ 345   2              OLED_DisplayCN(16, 0, 29); // 显示年份
+ 346   2              OLED_DisplayCN(32, 0, 30);
+ 347   2              OLED_DisplayCN(48, 0, 33);
+ 348   2              OLED_DisplayCN(64, 0, 34);
+ 349   2      
+ 350   2              OLED_DisplayCN(16, 2, 28);
+ 351   2              OLED_DisplayCN(32, 2, 29); // 不显示年份
+ 352   2              OLED_DisplayCN(48, 2, 30);
+ 353   2              OLED_DisplayCN(64, 2, 33);
+ 354   2              OLED_DisplayCN(80, 2, 34);
+ 355   2      
+C51 COMPILER V9.00   PAGE                                                                  01/08/2025 16:52:06 PAGE 7   
+
+ 356   2              option = Show_SelectBar(2); // 此处阻塞
+ 357   2              if (option == 1)
+ 358   2                  isShowYear = 1;
+ 359   2              else if (option == 2)
+ 360   2                  isShowYear = 0;
+ 361   2      
+ 362   2              break;
+ 363   2          case 3:
+ 364   2              OLED_Fill(0);
+ 365   2              OLED_DisplayCN(16, 0, 37); // 粗体
+ 366   2              OLED_DisplayCN(32, 0, 38);
+ 367   2      
+ 368   2              // OLED_DisplayCN(16, 2, 39);
+ 369   2              // OLED_DisplayCN(32, 2, 40); // 衬线体
+ 370   2              // OLED_DisplayCN(48, 2, 38);
+ 371   2      
+ 372   2              OLED_DisplayCN(16, 2, 41);
+ 373   2              OLED_DisplayCN(32, 2, 42); // 数码体
+ 374   2              OLED_DisplayCN(48, 2, 38);
+ 375   2      
+ 376   2              option = Show_SelectBar(2); // 此处阻塞
+ 377   2              if (option == 1)
+ 378   2                  Time_Fontstyle = 0;
+ 379   2              // else if(option==2)  Time_Fontstyle=1;
+ 380   2              else if (option == 2)
+ 381   2                  Time_Fontstyle = 1;
+ 382   2      
+ 383   2              break;
+ 384   2          case 4:
+ 385   2              OLED_Fill(0);
+ 386   2      
+ 387   2              OLED_DisplayStr(0, 0, "Use 2* AA BAT");
+ 388   2              OLED_DisplayStr(0, 2, "Or: Use Type-C");
+ 389   2              OLED_DisplayStr(0, 4, "DC Power");
+ 390   2              OLED_DisplayStr(0, 6, "Press Any Key");
+ 391   2      
+ 392   2              Key_Scan_Blocked();
+ 393   2      
+ 394   2              OLED_Fill(0);
+ 395   2      
+ 396   2              OLED_DisplayStr(0, 0, "Version: 1.0");
+ 397   2              OLED_DisplayStr(0, 2, "Compile Date:");
+ 398   2              OLED_DisplayStr(0, 4, "2025.1.8");
+ 399   2              OLED_DisplayStr(0, 6, "Press Any Key");
+ 400   2      
+ 401   2              Key_Scan_Blocked();
+ 402   2      
+ 403   2              OLED_Fill(0);
+ 404   2      
+ 405   2              break;
+ 406   2          default:
+ 407   2              break;
+ 408   2          }
+ 409   1          OLED_Fill(0);
+ 410   1      }
+ 411          
+ 412          // /// @brief 显示调整亮度界面
+ 413          // void ShowPage_BrightnessChange()
+ 414          // {
+ 415          //     unsigned char brightness;
+ 416          //     unsigned char option;
+ 417          
+C51 COMPILER V9.00   PAGE                                                                  01/08/2025 16:52:06 PAGE 8   
+
+ 418          //     OLED_Fill(0);
+ 419          //     // OLED_DisplayCN(16, 0, 29); //显示亮度调整
+ 420          //     // OLED_DisplayCN(32, 0, 30);
+ 421          //     // OLED_DisplayCN(48, 0, 43);
+ 422          //     // OLED_DisplayCN(64, 0, 44);
+ 423          //     // OLED_DisplayCN(80, 0, 45);
+ 424          //     // OLED_DisplayCN(96, 0, 46);
+ 425          
+ 426          //     OLED_DisplayStr(16,0,"100%");
+ 427          //     OLED_DisplayStr(16,2,"75%");
+ 428          //     OLED_DisplayStr(16,4,"50%");
+ 429          //     OLED_DisplayStr(16,6,"10%");
+ 430          
+ 431          //     option=Show_SelectBar(4);
+ 432          //     switch (option)
+ 433          //     {
+ 434          //         case 1:
+ 435          //             brightness=0xff;
+ 436          //             break;
+ 437          //         case 2:
+ 438          //             brightness=0xb2;
+ 439          //             break;
+ 440          //         case 3:
+ 441          //             brightness=0x7f;
+ 442          //             break;
+ 443          //         case 4:
+ 444          //             brightness=0x01;
+ 445          //             break;
+ 446          //     }
+ 447          //         OLED_Write_Byte(0x81, isCmd); //设置对比度
+ 448          //         OLED_Write_Byte(brightness, isCmd); //对比度,数值越大屏幕越亮，0x00-0xff
+ 449          // }
+ 450          
+ 451          /// @brief 显示闹钟正响时刻的界面
+ 452          void ShowPage_AlarmOn()
+ 453          {
+ 454   1          unsigned int n = 180;       //循环变量
+ 455   1          unsigned int k = 0xffff;    //循环计数变量
+ 456   1      
+ 457   1          OLED_Fill(0);
+ 458   1      
+ 459   1          OLED_DisplayCN(0, 6, 19);
+ 460   1          OLED_DisplayCN(16, 6, 48); // 按任意键关闭
+ 461   1          OLED_DisplayCN(32, 6, 49);
+ 462   1          OLED_DisplayCN(48, 6, 50);
+ 463   1          OLED_DisplayCN(64, 6, 51);
+ 464   1          OLED_DisplayCN(80, 6, 21);
+ 465   1          OLED_DisplayCN(96, 6, 52);
+ 466   1          OLED_DisplayCN(112, 6, 19);
+ 467   1      
+ 468   1          AlarmToggle(1); // 打开闹钟
+ 469   1      
+ 470   1          while (n--) // 循环等待按键按下
+ 471   1          {
+ 472   2      
+ 473   2              while (k--)
+ 474   2              {
+ 475   3                  DS1302_ReadTime();
+ 476   3                  Show_LargeTimeString(isShowSecond,Time_Fontstyle);  //闹钟响时仍然保持显示当前时�
+             -��
+ 477   3      
+ 478   3                  OLED_DisplayCN(0, 0, 23);    //显示闹钟标识
+C51 COMPILER V9.00   PAGE                                                                  01/08/2025 16:52:06 PAGE 9   
+
+ 479   3                  Show_TimeString(16, 0, Alarm_Time, 4);  //显示设定的闹钟时间
+ 480   3      
+ 481   3                  if (Key_Scan() != 0) // 如果有按键按下则立即退出，否则持续循环大约3分钟
+             -后关闭
+ 482   3                  {
+ 483   4                      AlarmToggle(0);
+ 484   4                      OLED_Fill(0);
+ 485   4                      return;
+ 486   4                  }
+ 487   3              }
+ 488   2          }
+ 489   1          AlarmToggle(0);
+ 490   1          OLED_Fill(0);
+ 491   1      }
+ 492          
+ 493          /// @brief 在屏幕指定位置显示日期字符串
+ 494          /// @param form 显示的形式，1为显示年月日，0为只显示月日
+ 495          /// @param x 0-127
+ 496          /// @param y 0-7
+ 497          void Show_DataString(unsigned char form, unsigned char x, unsigned char y)
+ 498          {
+ 499   1          if (form == 1)
+ 500   1          {
+ 501   2              OLED_DisplayChar(x, y, '2');                        // 显示年份千位
+ 502   2              OLED_DisplayChar(x + 8, y, '0');                    // 百位
+ 503   2              OLED_DisplayChar(x + 16, y, DS1302_Date[2] + 0x30); // 十位
+ 504   2              OLED_DisplayChar(x + 24, y, DS1302_Date[3] + 0x30); // 个位
+ 505   2              OLED_DisplayChar(x + 32, y, '/');                   // 分隔符
+ 506   2              OLED_DisplayChar(x + 40, y, DS1302_Date[4] + 0x30); // 月份十位
+ 507   2              OLED_DisplayChar(x + 48, y, DS1302_Date[5] + 0x30); // 月份个位
+ 508   2              OLED_DisplayChar(x + 56, y, '/');                   // 分隔符
+ 509   2              OLED_DisplayChar(x + 64, y, DS1302_Date[6] + 0x30);
+ 510   2              OLED_DisplayChar(x + 72, y, DS1302_Date[7] + 0x30);
+ 511   2          }
+ 512   1          else if (form == 0)
+ 513   1          {
+ 514   2              OLED_DisplayChar(x, y, DS1302_Date[4] + 0x30);
+ 515   2              OLED_DisplayChar(x + 8, y, DS1302_Date[5] + 0x30);
+ 516   2              OLED_DisplayChar(x + 16, y, '-');
+ 517   2              OLED_DisplayChar(x + 24, y, DS1302_Date[6] + 0x30);
+ 518   2              OLED_DisplayChar(x + 32, y, DS1302_Date[7] + 0x30);
+ 519   2          }
+ 520   1      }
+ 521          
+ 522          /// @brief 指定位置显示星期字符串
+ 523          /// @param form 0：显示 星期几     1：显示 周几
+ 524          /// @param x 0-127
+ 525          /// @param y 0-7
+ 526          void Show_WeekString(unsigned char form, unsigned char x, unsigned char y)
+ 527          {
+ 528   1          if (form == 0)
+ 529   1          {
+ 530   2              OLED_DisplayCN(x, y, 0); // 显示汉字：星期
+ 531   2              OLED_DisplayCN(x + 16, y, 1);
+ 532   2              switch (DS1302_Week) // 根据读取到的星期值，来确定显示哪个汉字（一二三四�
+             -�六日）
+ 533   2              {
+ 534   3              case 1:
+ 535   3                  OLED_DisplayCN(x + 32, y, 2);
+ 536   3                  break;
+ 537   3              case 2:
+ 538   3                  OLED_DisplayCN(x + 32, y, 3);
+C51 COMPILER V9.00   PAGE                                                                  01/08/2025 16:52:06 PAGE 10  
+
+ 539   3                  break;
+ 540   3              case 3:
+ 541   3                  OLED_DisplayCN(x + 32, y, 4);
+ 542   3                  break;
+ 543   3              case 4:
+ 544   3                  OLED_DisplayCN(x + 32, y, 5);
+ 545   3                  break;
+ 546   3              case 5:
+ 547   3                  OLED_DisplayCN(x + 32, y, 6);
+ 548   3                  break;
+ 549   3              case 6:
+ 550   3                  OLED_DisplayCN(x + 32, y, 7);
+ 551   3                  break;
+ 552   3              case 7:
+ 553   3                  OLED_DisplayCN(x + 32, y, 8);
+ 554   3                  break;
+ 555   3              }
+ 556   2          }
+ 557   1          else
+ 558   1          {
+ 559   2              OLED_DisplayCN(x, y, 9);
+ 560   2              switch (DS1302_Week)
+ 561   2              {
+ 562   3              case 1:
+ 563   3                  OLED_DisplayCN(x + 16, y, 2);
+ 564   3                  break;
+ 565   3              case 2:
+ 566   3                  OLED_DisplayCN(x + 16, y, 3);
+ 567   3                  break;
+ 568   3              case 3:
+ 569   3                  OLED_DisplayCN(x + 16, y, 4);
+ 570   3                  break;
+ 571   3              case 4:
+ 572   3                  OLED_DisplayCN(x + 16, y, 5);
+ 573   3                  break;
+ 574   3              case 5:
+ 575   3                  OLED_DisplayCN(x + 16, y, 6);
+ 576   3                  break;
+ 577   3              case 6:
+ 578   3                  OLED_DisplayCN(x + 16, y, 7);
+ 579   3                  break;
+ 580   3              case 7:
+ 581   3                  OLED_DisplayCN(x + 16, y, 8);
+ 582   3                  break;
+ 583   3              }
+ 584   2          }
+ 585   1      }
+ 586          
+ 587          /// @brief 在oled屏幕正中心显示大号时间
+ 588          /// @param form 1:显示时分秒 0：只显示时分
+ 589          /// @param FontStyle 字体风格，0：黑体   2：数码时钟体    1：衬线体
+ 590          void Show_LargeTimeString(unsigned char form, unsigned char FontStyle)
+ 591          {
+ 592   1          if (form == 1)
+ 593   1          {
+ 594   2              OLED_ShowLargeChar(0, 2, DS1302_Time[0], FontStyle);
+ 595   2              OLED_ShowLargeChar(16, 2, DS1302_Time[1], FontStyle);
+ 596   2              OLED_ShowLargeChar(32, 2, 10, FontStyle);
+ 597   2              OLED_ShowLargeChar(48, 2, DS1302_Time[2], FontStyle);
+ 598   2              OLED_ShowLargeChar(64, 2, DS1302_Time[3], FontStyle);
+ 599   2              OLED_ShowLargeChar(80, 2, 10, FontStyle);
+ 600   2              OLED_ShowLargeChar(96, 2, DS1302_Time[4], FontStyle);
+C51 COMPILER V9.00   PAGE                                                                  01/08/2025 16:52:06 PAGE 11  
+
+ 601   2              OLED_ShowLargeChar(112, 2, DS1302_Time[5], FontStyle);
+ 602   2          }
+ 603   1          else if (form == 0)
+ 604   1          {
+ 605   2              OLED_ShowLargeChar(24, 2, DS1302_Time[0], FontStyle);
+ 606   2              OLED_ShowLargeChar(40, 2, DS1302_Time[1], FontStyle);
+ 607   2      
+ 608   2              if (blink_flag == 1) // 如果该标识符为1，说明需要显示冒号
+ 609   2              {
+ 610   3                  //blink_flag = 0;                           // 同时标识符清零
+ 611   3                  OLED_ShowLargeChar(56, 2, 11, FontStyle); // 显示冒号
+ 612   3              }
+ 613   2              else // 如果不为一（为0时）
+ 614   2              {
+ 615   3                  //blink_flag = 1;                           // 先标识符置一
+ 616   3                  OLED_ShowLargeChar(56, 2, 10, FontStyle); // 再清除冒号显示
+ 617   3              }
+ 618   2      
+ 619   2              OLED_ShowLargeChar(72, 2, DS1302_Time[2], FontStyle);
+ 620   2              OLED_ShowLargeChar(88, 2, DS1302_Time[3], FontStyle);
+ 621   2          }
+ 622   1      }
+ 623          
+ 624          /// @brief oled指定位置显示时间的字符串，字体为8*16
+ 625          /// @param x 0-127
+ 626          /// @param y 0-7
+ 627          /// @param TimeString 需要显示的时间字符串
+ 628          /// @param length 需要显示的长度，如果为4则显示时分、为6显示时分秒
+ 629          void Show_TimeString(unsigned char x, unsigned char y, unsigned char *TimeString, unsigned char length)
+ 630          {
+ 631   1          OLED_DisplayChar(x, y, TimeString[0] + 0x30);
+ 632   1          OLED_DisplayChar(x + 8, y, TimeString[1] + 0x30);
+ 633   1          OLED_DisplayChar(x + 16, y, ':');
+ 634   1          OLED_DisplayChar(x + 24, y, TimeString[2] + 0x30);
+ 635   1          OLED_DisplayChar(x + 32, y, TimeString[3] + 0x30);
+ 636   1          if (length == 6)
+ 637   1          {
+ 638   2              OLED_DisplayChar(x + 40, y, ':');
+ 639   2              OLED_DisplayChar(x + 48, y, TimeString[4] + 0x30);
+ 640   2              OLED_DisplayChar(x + 56, y, TimeString[5] + 0x30);
+ 641   2          }
+ 642   1      }
+ 643          
+ 644          /// @brief 此函数为各种页面的项目提供一个可移动的选择指示箭头→，属于阻塞�
+             -�句
+ 645          /// @param item 可选项的数量,2-4
+ 646          /// @return 用户选择的选项序号,返回0表示退出
+ 647          unsigned char Show_SelectBar(unsigned char item)
+ 648          {
+ 649   1          unsigned char i = 1;
+ 650   1      
+ 651   1          while (1)
+ 652   1          {
+ 653   2              OLED_DisplayCN(0, 0, 19); // 先清除所有的箭头显示
+ 654   2              OLED_DisplayCN(0, 2, 19);
+ 655   2              OLED_DisplayCN(0, 4, 19);
+ 656   2              OLED_DisplayCN(0, 6, 19);
+ 657   2      
+ 658   2              OLED_DisplayCN(0, i * 2 - 2, 18); // 在当前用户选择的位置显示箭头
+ 659   2      
+ 660   2              switch (Key_Scan_Blocked()) // 判断按下什么按键
+ 661   2              {
+C51 COMPILER V9.00   PAGE                                                                  01/08/2025 16:52:06 PAGE 12  
+
+ 662   3              case 1: // 按下ok，则返回当前的所选项
+ 663   3                  return i;
+ 664   3                  break;
+ 665   3              case 2: // 按下切换，则当前选项+1，也就是下移一位
+ 666   3                  i++;
+ 667   3                  break;
+ 668   3              case 3: // 按下取消，则返回的选项是0，表示返回。
+ 669   3                  return 0;
+ 670   3                  break;
+ 671   3              }
+ 672   2              if (i > item)
+ 673   2                  i = 1; // 当项目数到最大，则归1
+ 674   2          }
+ 675   1      }
+ 676          
+ 677          /// @brief 打开或关闭闹钟响铃
+ 678          /// @param statue 0为关，1为开
+ 679          void AlarmToggle(unsigned char statue)
+ 680          {
+ 681   1          Alarm_Pin = 1 - statue;
+ 682   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   3534    ----
+   CONSTANT SIZE    =    120    ----
+   XDATA SIZE       =      9      22
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
